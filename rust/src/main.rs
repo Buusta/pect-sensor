@@ -17,7 +17,7 @@ use usbd_serial::SerialPort;
 use embedded_hal::pwm::SetDutyCycle;
 
 const TIME_MS: usize = 50;
-const BIN_SIZE_US: usize = 25;
+const BIN_SIZE_US: usize = 10;
 const N: usize = TIME_MS * 1000 / BIN_SIZE_US;
 const CHUNK: usize = 500; // DMA buffer size, must divide N evenly
 const AVERAGES: usize = 100; // periods to accumulate
@@ -25,6 +25,10 @@ const TICKS_PER_MS: u32 = 1250; // 125 MHz / divider 100 = 1.25 MHz tick
 const OFF_MS: u32 = 15;         // coil-off time at the start of each period
 const PWM_TOP: u16 = (TIME_MS as u32 * TICKS_PER_MS - 1) as u16;
 const _: () = assert!(TIME_MS as u32 * TICKS_PER_MS <= 65_536); // max ~52 ms
+
+// calibration samples
+const CAL_MS: usize = 1000;
+const CAL_CHUNKS: usize = CAL_MS * 1000 / BIN_SIZE_US / CHUNK; // 1000 chunks
 
 // fail the build instead of silently misbehaving
 const _: () = assert!(N % CHUNK == 0);
@@ -131,10 +135,25 @@ fn main() -> ! {
     .start();
     let mut transfer = transfer.write_next(buf_b);
 
-    pwm.enable();
+
     adc_fifo.resume();
 
     // --- capture and accumulate ---
+    let mut cal_sum: u64 = 0;
+    for k in 0..CAL_CHUNKS {
+        while !transfer.is_done() {
+            usb_dev.poll(&mut [&mut serial]);
+        }
+        let (buf, next) = transfer.wait();
+        if k == CAL_CHUNKS - 1 {
+            pwm.enable(); // PWM starts right at a chunk boundary
+        }
+        for i in 0..CHUNK {
+            cal_sum += buf[i] as u64;
+        }
+        transfer = next.write_next(buf);
+    }
+
     let mut pos = 0usize; // where the next chunk lands in the accumulator
     for _ in 0..(AVERAGES * (N / CHUNK)) {
         while !transfer.is_done() {
@@ -148,7 +167,22 @@ fn main() -> ! {
         transfer = next.write_next(buf);
     }
 
+    pwm.disable();
+
     // --- dump the sums (divide by AVERAGES on the PC) ---
+    let b = cal_sum * 1000 / (CAL_CHUNKS * CHUNK) as u64;
+    let mut hdr: String<96> = String::new();
+    let _ = write!(
+        hdr,
+        "# baseline_counts={}.{:03} cal_ms={} bin_us={} averages={}\n",
+        b / 1000,
+        b % 1000,
+        CAL_MS,
+        BIN_SIZE_US,
+        AVERAGES
+    );
+    send(&mut usb_dev, &mut serial, hdr.as_bytes());
+
     send(&mut usb_dev, &mut serial, b"time_ms,value\n");
 
     let mut line: String<32> = String::new();
