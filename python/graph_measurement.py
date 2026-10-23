@@ -65,7 +65,9 @@ def exp_h(x, a, b, c):
     return a * np.exp(-(x-c) * b).astype(float)
 
 
-def plot_data(data: Data):
+def plot_data(data: Data, ms_offset: float = 0.0):
+    data.df["time_ms"] = data.df["time_ms"] + ms_offset
+
     filtered_data_df = data.df[
             (data.df["time_ms"] >= min_time_plot)
             & (data.df["time_ms"] <= max_time_plot)
@@ -93,25 +95,80 @@ def plot_data(data: Data):
         plt.hlines(data.ceil_normalized, ceil_start, ceil_end, colors="red", label="decay point")
 
 
-normalized_plot: bool = False
+def residuals(calibration: DataFrame, measurement: DataFrame) -> DataFrame:
+    df = pd.DataFrame()
+    df["time_ms"] = calibration["time_ms"]
+    df["res"] = measurement["normalized"] - calibration["normalized"]
+    return df
+
+zed = 10
+
+def bin_residuals(residuals: DataFrame, bin_n: int = 5) -> DataFrame:
+    # average groups of bin_n samples (5 x 5 us = 25 us bins)
+    n = len(residuals) // bin_n * bin_n
+    t = residuals["time_ms"].to_numpy()[:n].reshape(-1, bin_n).mean(axis=1)
+    r = residuals["res"].to_numpy()[:n].reshape(-1, bin_n).mean(axis=1)
+    return pd.DataFrame({"time_ms": t, "res": r})
+
+
+def plot_residuals(residuals: DataFrame, label=None, bin_n=5, normalize=True,
+                   log=False, t_off=15.0, from_peak=True):
+    global zed
+    df = (bin_residuals(residuals, bin_n) if bin_n > 1 else residuals).copy()
+
+    smooth = df["res"].rolling(8, center=True).mean()
+    peak_i = smooth[df["time_ms"] >= t_off].idxmax()
+    peak_t = df.loc[peak_i, "time_ms"]
+
+    if normalize:
+        df["res"] = df["res"] / smooth[peak_i]  # scale before cutting
+    if from_peak:
+        df = df[df["time_ms"] >= peak_t]
+
+    mask = (df["time_ms"] >= min_time_plot) & (df["time_ms"] <= max_time_plot)
+    plt.plot(df["time_ms"][mask], df["res"][mask], label=label, zorder=zed)
+    zed -= 1
+
+    if log:
+        plt.yscale("log")
+    return peak_t
+
+
+def fit_decay(res, t0=15.0, start=1.0, end=10.0):
+    d = res[(res["time_ms"] >= t0 + start) & (res["time_ms"] <= t0 + end)]
+    popt, _ = curve_fit(
+        lambda t, a, tau: a * np.exp(-(t - t0) / tau),
+        d["time_ms"], d["res"], p0=(0.02, 2.0),
+    )
+    return popt  # (amplitude, tau in ms)
+
+
+normalized_plot: bool = True
 plot_fit_lines: bool = False
 min_time_plot: float = 0.0
-max_time_plot: float = 50.0
+max_time_plot: float = 30.0
 fit_line_resolution = 100
 linewidth: float = 2.0
 
-floor_time_range = (35.0, 70.0)
-ceil_time_range = (10.0, 20.0)
+floor_time_range = (27.5, 30.0)
+ceil_time_range = (13.0, 15.0)
 current_turn_off_time: float = 20.0
 decay_threshold = 0.01
 
-setup_4 = Data("setup_4.csv", True)
-setup_5 = Data("capture.csv")
+cal = Data("calibration.csv")
+t1mm = Data("t1mm.csv")
+t3mm = Data("t3mm.csv")
+t5mm = Data("t5mm.csv")
 
-plot_data(setup_4)
-plot_data(setup_5)
+res_t1 = residuals(cal.df, t1mm.df)
+res_t3 = residuals(cal.df, t3mm.df)
+res_t5 = residuals(cal.df, t5mm.df)
+
+plot_residuals(res_t1, bin_n=5)
+plot_residuals(res_t3, bin_n=5)
+plot_residuals(res_t5, bin_n=5)
 
 plt.legend()
 plt.grid(True)
-# plt.savefig("setups.png", dpi=100)
+plt.savefig("residuals.png", dpi=100)
 plt.show()
