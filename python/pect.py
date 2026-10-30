@@ -65,7 +65,7 @@ def exp_h(x, a, b, c):
     return a * np.exp(-(x-c) * b).astype(float)
 
 
-def plot_data(data: Data, ms_offset: float = 0.0):
+def plot_data(data: Data, ms_offset: float = 0.0, normalize=True):
     data.df["time_ms"] = data.df["time_ms"] + ms_offset
 
     filtered_data_df = data.df[
@@ -73,7 +73,7 @@ def plot_data(data: Data, ms_offset: float = 0.0):
             & (data.df["time_ms"] <= max_time_plot)
     ]
 
-    normalized_label = "normalized" if normalized_plot else "mT"
+    normalized_label = "normalized" if normalize else "mT"
 
     label = data.file
     plt.plot(filtered_data_df["time_ms"], filtered_data_df[normalized_label], label=label)
@@ -154,21 +154,3 @@ floor_time_range = (27.5, 30.0)
 ceil_time_range = (13.0, 15.0)
 current_turn_off_time: float = 20.0
 decay_threshold = 0.01
-
-cal = Data("calibration.csv")
-t1mm = Data("t1mm.csv")
-t3mm = Data("t3mm.csv")
-t5mm = Data("t5mm.csv")
-
-res_t1 = residuals(cal.df, t1mm.df)
-res_t3 = residuals(cal.df, t3mm.df)
-res_t5 = residuals(cal.df, t5mm.df)
-
-plot_residuals(res_t1, bin_n=5)
-plot_residuals(res_t3, bin_n=5)
-plot_residuals(res_t5, bin_n=5)
-
-plt.legend()
-plt.grid(True)
-plt.savefig("residuals.png", dpi=100)
-plt.show()
