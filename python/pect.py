@@ -6,20 +6,29 @@ from scipy.signal import find_peaks
 import os
 
 
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 
 """
 DataProcessor reads in csv measurements and turns them into processed data.
-The raw data can be accessed trough DataProcessor.df.
-Legacy uses an old way to read in csv so they can be compared with new measurements.
-Ceil is the stable point of the peak current, the time range is used for normalizing it to 1.0.
-Floor is the stable point of background noise, the time range is used for normalizing it to 0.0.
+The data is accessible with DataProcessor.df:
+    "time_ms",
+    "mT",
+    "normalized"
+
+ceil is the mT the coil stabilized at
+floor is the measured noise floor (in mT)
+
+get_residuals takes in a DataProcessor and saves the residuals and the residuals of the normalized data and
+saves them in DataProcessor.df:
+    "residuals"
+    "normalized_data_residuals"
 """
 class DataProcessor:
     def __init__(self, file: str, ceil_time_range: tuple = (13.0, 15.0), floor_time_range: tuple = (27.5, 30.0), \
         relative_path: str = "msts", legacy: bool = False):
 
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.file = file_path = os.path.join(base_dir, relative_path, file)
         if legacy:
             self.df = pd.read_csv(self.file, comment="#")
@@ -33,8 +42,8 @@ class DataProcessor:
             averages = int(meta["averages"])
 
             self.df = pd.read_csv(self.file, comment="#")
-            self.df["voltage"] = (self.df["value"] - baseline) / 4095 * 5.0 # convert 12-bit number to 5v
-            self.df["mT"] = (self.df["voltage"] - 2047) / 0.003125 # 0.625G * 5v = 3.125mV / G * 10 = 31.25mV/mT
+            self.df["voltage"] = (self.df["value"] - baseline) * 3.3 / 4096 * 1.5 # convert 12-bit number to 5v range
+            self.df["mT"] = self.df["voltage"] / 0.03125 # 0.625G * 5v = 3.125mV / G * 10 = 31.25mV/mT
 
         ceil_start, ceil_end = ceil_time_range
         ceil_filter_df = self.df[
@@ -55,39 +64,36 @@ class DataProcessor:
         self.df["normalized"] = self.df["mT"] / (self.ceil - self.floor)
         self.ceil_normalized = self.ceil / (self.ceil - self.floor)
 
+    def get_residuals(self, base: DataProcessor, normalized_residuals: bool = True):
+        self.df["residuals"] = self.df["mT"] - base.df["mT"]
+        self.df["normalized_data_residuals"] = self.df["normalized"] - base.df["normalized"]
+
 
 """
 The signal plot function takes in a DataProcessor and then plots it within the specificied
 time and y_range.
 Time_range is in ms.
-Y_range is in mT, it will automatically be converted to a.u. if normalize is True.
 Normalize uses the normalized signal based on the ceil and the floor of the DataProcessor.
 """
-def plot_signal(data: DataProcessor, time_range: tuple = (0.0, 30.0), y_range: tuple = (0.0, 10.0), normalize: bool = True, \
-    label: str = ""):
+def plot_signal(data: DataProcessor, time_range: tuple = (0.0, 30.0), normalize: bool = True, \
+    label: str = "", ms_offset: float = 0.0):
     data.df["time_ms"] = data.df["time_ms"] + ms_offset
 
     min_time, max_time = time_range
     filtered_data_df = data.df[
-            (data.df["time_ms"] >= min_time_plot)
-            & (data.df["time_ms"] <= max_time_plot)
+            (data.df["time_ms"] >= min_time)
+            & (data.df["time_ms"] <= max_time)
     ]
-
-    y_min, y_max = y_range
-    if normalize:
-        y_min = (y_min - data.floor) / (data.ceil - data.floor)
-        y_max = (y_max - data.floor) / (data.ceil - data.floor)
 
     normalized_label = "normalized" if normalize else "mT"
 
-    if label == "": 
+    if label == "":
         label = data.file
 
     plt.plot(filtered_data_df["time_ms"], filtered_data_df[normalized_label], label=label)
 
     ### Deprecated, may be added again later. ###
     # if not plot_fit_lines: return
-
 
     # floor_start = max(floor_time_range[0], min_time_plot)
     # floor_end = min(floor_time_range[1], max_time_plot)
@@ -101,51 +107,46 @@ def plot_signal(data: DataProcessor, time_range: tuple = (0.0, 30.0), y_range: t
     # if ceil_start <= ceil_end:
     #     plt.hlines(data.ceil_normalized, ceil_start, ceil_end, colors="red", label="decay point")
 
-"""
-Get_residuals gets the residuals of the calibration DataProcesor and the measurement DataProcessor
 
 """
-def get_residuals(calibration: DataProcessor, measurement: DataProcessor, normalize: bool = True) -> DataFrame:
-    df = pd.DataFrame()
-    df["time_ms"] = calibration.df["time_ms"]
-
-    normalize_label: str = "noralized" if normalize else "mT"
-
-    df["res"] = measurement.df[normalize_label] - calibration.df[normalize_label]
-    return df
-
-
-def bin_residuals(residuals: DataFrame, bin_n: int = 5) -> DataFrame:
+bin_residuals merges data from x amount of bins into 1 bin, its used to increase the signal-to-noise ratio by sacrificing time resolution
+bin_n is the amount of bins that will be merged into one. To calculate the new time resolution you simply divide the previous time resolution by bin_n.
+"""
+def bin_residuals(residuals: DataProcessor, bin_n: int = 5, normalized_data: bool = True) -> pd.DataFrame:
     # average groups of bin_n samples (5 x 5 us = 25 us bins)
-    n = len(residuals) // bin_n * bin_n
-    t = residuals["time_ms"].to_numpy()[:n].reshape(-1, bin_n).mean(axis=1)
-    r = residuals["res"].to_numpy()[:n].reshape(-1, bin_n).mean(axis=1)
-    return pd.DataFrame({"time_ms": t, "res": r})
+    n = len(residuals.df) // bin_n * bin_n
+    t = residuals.df["time_ms"].to_numpy()[:n].reshape(-1, bin_n).mean(axis=1)
+
+    r = None
+    if normalized_data:
+        r = residuals.df["normalized_data_residuals"].to_numpy()[:n].reshape(-1, bin_n).mean(axis=1)
+    else:
+        r = residuals.df["residuals"].to_numpy()[:n].reshape(-1, bin_n).mean(axis=1)
+
+    return pd.DataFrame({"time_ms": t, "residuals": r})
 
 
-def plot_residuals(residuals: DataFrame, label=None, bin_n=5, normalize=True,
-                   log=False, t_off=15.0, from_peak=True):
-    global zed
-    df = (bin_residuals(residuals, bin_n) if bin_n > 1 else residuals).copy()
-
-    smooth = df["res"].rolling(8, center=True).mean()
-    peak_i = smooth[df["time_ms"] >= t_off].idxmax()
-    peak_t = df.loc[peak_i, "time_ms"]
-
+"""
+plot_residuals plots the residuals of the selected DataProcessor.
+normalized_data selects wether to use the raw "mT" column of the DataProcessor.df or the "normalized" column
+normalize selects if the binned data should be normalized
+bin_n is the amount of bins that will be merged into one. (look at def bin_residuals for details)
+"""
+def plot_residuals(data: DataProcessor, label: str = "", normalized_data: bool = True, normalize: bool = True, bin_n=5, time_range: tuple = (15.0, 30.0)):
+    binned_res: pd.DataFrame = (bin_residuals(data, bin_n, normalized_data = normalized_data))
     if normalize:
-        df["res"] = df["res"] / smooth[peak_i]  # scale before cutting
-    if from_peak:
-        df = df[df["time_ms"] >= peak_t]
+        binned_res["residuals"] = binned_res["residuals"] / binned_res["residuals"].max() # linear scaling based on peak since our data floor is already centered at 0.0
 
-    mask = (df["time_ms"] >= min_time_plot) & (df["time_ms"] <= max_time_plot)
-    plt.plot(df["time_ms"][mask], df["res"][mask], label=label, zorder=zed)
-    zed -= 1
+    min_time, max_time = time_range
+    binned_res_time_filtered = binned_res[
+        (binned_res["time_ms"] >= min_time)
+        & (binned_res["time_ms"] <= max_time)
+    ]
 
-    if log:
-        plt.yscale("log")
-    return peak_t
+    plt.plot(binned_res_time_filtered["time_ms"], binned_res_time_filtered["residuals"])
 
 
+# TODO: implement into final fit
 def fit_decay(res, t0=15.0, start=1.0, end=10.0):
     d = res[(res["time_ms"] >= t0 + start) & (res["time_ms"] <= t0 + end)]
     popt, _ = curve_fit(
@@ -155,19 +156,5 @@ def fit_decay(res, t0=15.0, start=1.0, end=10.0):
     return popt  # (amplitude, tau in ms)
 
 
-
 def exp_h(x, a, b, c):
     return a * np.exp(-(x-c) * b).astype(float)
-
-
-# normalized_plot: bool = True
-# plot_fit_lines: bool = False
-# min_time_plot: float = 0.0
-# max_time_plot: float = 30.0
-# fit_line_resolution = 100
-# linewidth: float = 2.0
-
-# floor_time_range = (27.5, 30.0)
-# ceil_time_range = (13.0, 15.0)
-# current_turn_off_time: float = 20.0
-# decay_threshold = 0.01
