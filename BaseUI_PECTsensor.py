@@ -52,6 +52,7 @@ def update_graph():
 
     data = Residuals
     data_fit = Fit
+    raw_data = Tesla
 
     if keuze == "Residuals en Fit":
         ax.clear()
@@ -68,7 +69,7 @@ def update_graph():
 
     elif keuze == "Raw Hallsensor Data":
         ax.clear()
-        ax.plot(data_fit, label="Raw Hallsensor Data", color="green")
+        ax.plot(raw_data, label="Raw Hallsensor Data", color="green")
 
     ax.legend(loc="upper right")
     ax.set_ylim(0, 25)
