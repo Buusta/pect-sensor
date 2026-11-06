@@ -48,6 +48,7 @@ def update_graph():
     # Nieuwe meetwaarde simuleren !!DIT VERVANGEN MET UITEINDELIJK REËLE DATA!!
     Residuals = np.random.normal(10, 2, 20)
     Fit = np.random.normal(10, 1, 20)
+    Tesla = np.random.normal(10, 5, 20)
 
     data = Residuals
     data_fit = Fit
@@ -65,11 +66,15 @@ def update_graph():
         ax.clear()
         ax.plot(data_fit, label="Fit", color="blue")
 
+    elif keuze == "Raw Hallsensor Data":
+        ax.clear()
+        ax.plot(data_fit, label="Raw Hallsensor Data", color="green")
+
     ax.legend(loc="upper right")
     ax.set_ylim(0, 25)
     ax.set_title("Live metingen")
-    ax.set_xlabel("Tijd (seconden)")
-    ax.set_ylabel("Meetwaarde")
+    ax.set_ylabel("Intensiteit (in mT)")
+    ax.set_xlabel("Tijd (in milliseconden)")
 
     canvas.draw()
 
@@ -122,7 +127,10 @@ stop_button.pack(side=tk.LEFT, padx=5, pady=5)
 # Dropdown menu om meetdata aan te passen
 dropdown = ttk.Combobox(
     root,
-    values=["Residuals en Fit", "Fit", "Residuals"],
+    values=["Residuals en Fit", 
+            "Fit", 
+            "Residuals", 
+            "Raw Hallsensor Data"],
     state="readonly"
 )
 
