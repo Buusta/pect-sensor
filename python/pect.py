@@ -6,9 +6,6 @@ from scipy.signal import find_peaks
 import os
 
 
-
-
-
 """
 DataProcessor reads in csv measurements and turns them into processed data.
 The data is accessible with DataProcessor.df:
@@ -25,6 +22,7 @@ saves them in DataProcessor.df:
     "normalized_data_residuals"
 """
 class DataProcessor:
+    from __future__ import annotations
     def __init__(self, file: str, ceil_time_range: tuple = (13.0, 15.0), floor_time_range: tuple = (27.5, 30.0), \
         relative_path: str = "msts", legacy: bool = False):
 
@@ -143,7 +141,10 @@ def plot_residuals(data: DataProcessor, label: str = "", normalized_data: bool =
         & (binned_res["time_ms"] <= max_time)
     ]
 
-    plt.plot(binned_res_time_filtered["time_ms"], binned_res_time_filtered["residuals"])
+    if label == "":
+        label = data.file
+
+    plt.plot(binned_res_time_filtered["time_ms"], binned_res_time_filtered["residuals"], label=label)
 
 
 # TODO: implement into final fit
