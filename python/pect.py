@@ -1,10 +1,11 @@
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-from scipy.optimize import curve_fit
-from scipy.signal import find_peaks
+from __future__ import annotations
+
 import os
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy.optimize import curve_fit
 
 """
 DataProcessor reads in csv measurements and turns them into processed data.
@@ -22,12 +23,11 @@ saves them in DataProcessor.df:
     "normalized_data_residuals"
 """
 class DataProcessor:
-    from __future__ import annotations
     def __init__(self, file: str, ceil_time_range: tuple = (13.0, 15.0), floor_time_range: tuple = (27.5, 30.0), \
         relative_path: str = "msts", legacy: bool = False):
 
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.file = file_path = os.path.join(base_dir, relative_path, file)
+        self.file = os.path.join(base_dir, relative_path, file)
         if legacy:
             self.df = pd.read_csv(self.file, comment="#")
         else:
@@ -36,8 +36,8 @@ class DataProcessor:
 
             meta = dict(kv.split("=") for kv in header.lstrip("# ").split())
             baseline = float(meta["baseline_counts"])
-            bin_us = int(meta["bin_us"])
-            averages = int(meta["averages"])
+            # bin_us = int(meta["bin_us"])
+            # averages = int(meta["averages"])
 
             self.df = pd.read_csv(self.file, comment="#")
             self.df["voltage"] = (self.df["value"] - baseline) * 3.3 / 4096 * 1.5 # convert 12-bit number to 5v range
