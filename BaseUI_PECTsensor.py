@@ -50,7 +50,7 @@ def update_graph():
     # Nieuwe meetwaarde simuleren !!DIT VERVANGEN MET UITEINDELIJK REËLE DATA!!
     Residuals = np.random.normal(10, 2, 20)
     Fit = np.random.normal(10, 1, 20)
-    # Tesla = np.random.normal(10, 5, 20)
+    Tesla = np.random.normal(10, 5, 20)
 
     data = Residuals
     data_fit = Fit
