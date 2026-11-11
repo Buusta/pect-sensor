@@ -1,10 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
+
 import numpy as np
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 root = tk.Tk()
@@ -13,7 +15,7 @@ root.wm_title("PECT-control")
 # Labels voor de gemiddelde waarde
 average_label = tk.Label(
     root,
-    text=f"Average/Gemiddelde: ",
+    text="Average/Gemiddelde: ",
     font=("Arial", 14, "bold")
 )
 average_label.pack(side=tk.TOP, pady=10)
@@ -48,7 +50,7 @@ def update_graph():
     # Nieuwe meetwaarde simuleren !!DIT VERVANGEN MET UITEINDELIJK REËLE DATA!!
     Residuals = np.random.normal(10, 2, 20)
     Fit = np.random.normal(10, 1, 20)
-    Tesla = np.random.normal(10, 5, 20)
+    # Tesla = np.random.normal(10, 5, 20)
 
     data = Residuals
     data_fit = Fit
@@ -128,9 +130,9 @@ stop_button.pack(side=tk.LEFT, padx=5, pady=5)
 # Dropdown menu om meetdata aan te passen
 dropdown = ttk.Combobox(
     root,
-    values=["Residuals en Fit", 
-            "Fit", 
-            "Residuals", 
+    values=["Residuals en Fit",
+            "Fit",
+            "Residuals",
             "Raw Hallsensor Data"],
     state="readonly"
 )
