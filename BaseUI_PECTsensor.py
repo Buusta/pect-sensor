@@ -1,19 +1,39 @@
 import tkinter as tk
 from tkinter import ttk
+
 import numpy as np
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 root = tk.Tk()
 root.wm_title("PECT-control")
 
+# Top menu
+menubar = tk.Menu(root)
+root['menu'] = menubar
+
+# Test function
+def test():
+    print(2+2)
+
+menu_file = tk.Menu(menubar, tearoff = 0)
+menu_ports = tk.Menu(menubar, tearoff = 0)
+menubar.add_cascade(menu=menu_file, label='File')
+menubar.add_cascade(menu=menu_ports, label='Ports')
+
+menu_file.add_command(label='New')
+menu_file.add_command(label='Open...')
+menu_file.add_command(label='Close')
+menu_file.add_command(label ='Exit', command= root.destroy)
+
 # Labels voor de gemiddelde waarde
 average_label = tk.Label(
     root,
-    text=f"Average/Gemiddelde: ",
+    text="Average/Gemiddelde: ",
     font=("Arial", 14, "bold")
 )
 average_label.pack(side=tk.TOP, pady=10)
@@ -52,6 +72,7 @@ def update_graph():
 
     data = Residuals
     data_fit = Fit
+    raw_data = Tesla
 
     if keuze == "Residuals en Fit":
         ax.clear()
@@ -68,7 +89,7 @@ def update_graph():
 
     elif keuze == "Raw Hallsensor Data":
         ax.clear()
-        ax.plot(data_fit, label="Raw Hallsensor Data", color="green")
+        ax.plot(raw_data, label="Raw Hallsensor Data", color="green")
 
     ax.legend(loc="upper right")
     ax.set_ylim(0, 25)
@@ -127,9 +148,9 @@ stop_button.pack(side=tk.LEFT, padx=5, pady=5)
 # Dropdown menu om meetdata aan te passen
 dropdown = ttk.Combobox(
     root,
-    values=["Residuals en Fit", 
-            "Fit", 
-            "Residuals", 
+    values=["Residuals en Fit",
+            "Fit",
+            "Residuals",
             "Raw Hallsensor Data"],
     state="readonly"
 )
