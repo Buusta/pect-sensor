@@ -11,7 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 sensor = pec.PECSensor()
-print(sensor.protocol.available_ports)
+#print(sensor.protocol.available_ports)
 
 root = tk.Tk()
 root.wm_title("PECT-control")
@@ -34,8 +34,18 @@ menu_file.add_command(label='Open...')
 menu_file.add_command(label='Close')
 menu_file.add_command(label ='Exit', command= root.destroy)
 
+connection_label = tk.Label(
+    root,
+    text="Not Connected",
+    font=("Arial", 10)
+)
+connection_label.pack(side=tk.TOP)
+
 for p in sensor.protocol.available_ports:
-    menu_ports.add_command(label=f'{p}', command=pec.protocol.connect(f'{p}.vid'))
+    menu_ports.add_command(label=f'{p}', command= lambda p=p: [sensor.protocol.connect(p.vid),
+                                                               connection_label.config(
+                                                                   text=f"Connected via: {p}"
+                                                                   )])
 
 #menu_ports.add_command(label='Disconnect', command=pec.protocol.disconnect())
 
@@ -47,13 +57,13 @@ average_label = tk.Label(
 )
 average_label.pack(side=tk.TOP, pady=10)
 
-average_label = tk.Label(
+data_label = tk.Label(
     root,
     text="Wachten op data...",
     foreground="#B50000",
     font=("Arial", 18, "bold")
 )
-average_label.pack(side=tk.TOP, pady=5)
+data_label.pack(side=tk.TOP, pady=5)
 
 # Matplotlib figure
 fig = Figure(figsize=(7, 4))
