@@ -12,6 +12,24 @@ from matplotlib.figure import Figure
 root = tk.Tk()
 root.wm_title("PECT-control")
 
+# Top menu
+menubar = tk.Menu(root)
+root['menu'] = menubar
+
+# Test function
+def test():
+    print(2+2)
+
+menu_file = tk.Menu(menubar, tearoff = 0)
+menu_ports = tk.Menu(menubar, tearoff = 0)
+menubar.add_cascade(menu=menu_file, label='File')
+menubar.add_cascade(menu=menu_ports, label='Ports')
+
+menu_file.add_command(label='New')
+menu_file.add_command(label='Open...')
+menu_file.add_command(label='Close')
+menu_file.add_command(label ='Exit', command= root.destroy)
+
 # Labels voor de gemiddelde waarde
 average_label = tk.Label(
     root,
