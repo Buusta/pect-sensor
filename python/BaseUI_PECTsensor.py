@@ -39,9 +39,10 @@ menu_test = tk.Menu(menubar, tearoff = 0)
 menubar.add_cascade(menu=menu_ports, label='Ports')
 menubar.add_cascade(menu=menu_test, label='Test')
 
-menu_test.add_command(label='2+2', command= test())
+menu_test.add_command(label='2+2', command= lambda: test())
 menu_test.add_command(label=';)')
-menu_test.add_command(label ='Exit', command= root.destroy)
+menu_test.add_command(label ='Exit', command= lambda: [sensor.protocol.disconnect(),
+                                                       root.destroy])
 menu_test.add_command(label ='Run Test Command', command=lambda: sensor.test(69, do_thing))
 
 # Connection
@@ -57,12 +58,13 @@ for p in sensor.protocol.available_ports:
                                                                connection_label.config(
                                                                    text=f"Connected via: {p}"
                                                                    )])
-    
+
+#if sensor.protocol.serial.is_open == True:
 menu_ports.add_separator()
 menu_ports.add_command(label='Disconnect', command= lambda: [sensor.protocol.disconnect(),
-                                                                connection_label.config(
-                                                                    text=f"Disconnected"
-                                                                    )])
+                                                            connection_label.config(
+                                                                text=f"Disconnected"
+                                                                )])
 
 # Labels voor de gemiddelde waarde
 average_label = tk.Label(
@@ -134,7 +136,7 @@ def update_graph():
     canvas.draw()
 
     average = np.mean(data)
-    average_label.config(
+    data_label.config(
         text=f"{average:.3f}",
         foreground="#039903"
     )
@@ -200,7 +202,8 @@ canvas.mpl_connect(
     "key_press_event", lambda event: print(f"you pressed {event.key}"))
 canvas.mpl_connect("key_press_event", key_press_handler)
 
-button_quit = tk.Button(master=root, text="Quit", command=root.destroy)
+button_quit = tk.Button(master=root, text="Quit", command= lambda: [sensor.protocol.disconnect(),
+                                                                    root.destroy])
 button_quit.pack(side=tk.BOTTOM, pady=10)
 
 toolbar.pack(side=tk.BOTTOM, fill=tk.X)
