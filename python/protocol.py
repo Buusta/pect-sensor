@@ -54,40 +54,44 @@ class Protocol:
             
 
 
-    def send_command(self, command: str, callback: callable) -> bool:
+    def send_command(self, command: str, handler: callable, on_error: callable, timeout: float = 1.0) -> bool:
         if self.serial is None or not self.serial.is_open:
             return False
 
         if not self._busy.acquire(blocking=False):
             return False
 
-        self.serial.reset_input_buffer()
-        self.serial.write((command + "\n").encode())
-
-        self._thread = threading.Thread(target=self._run, args=(callback,))
+        self._thread = threading.Thread(target=self._run, args=(command, handler, on_error, timeout))
         self._thread.start()
     
         return True
 
 
-    def _run(self, callback):
+    def _run(self, command, handler, on_error, timeout):
         try:
-            lines = self.read_serial(callback)
+            self.serial.reset_input_buffer()
+            self.serial.write((command + "\n").encode())
+            while True:
+                line = self._read_line(timeout)
+                if line is None:
+                    on_error("timeout")
+                    return
+                if line.startswith("ERR"):
+                    on_error(line)
+                    return
+                if handler(line):
+                    return
+        except serial.SerialException as e:
+            on_error(str(e))
         finally:
             self._busy.release()
-        
-        callback(lines)
 
 
-    def read_serial(self, callback):
-        lines = []
-        deadline = time.monotonic() + 1.0
+    def _read_line(self, timeout):
+        deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            raw = self.serial.readline()
-            if not raw: continue
-            line = raw.decode("utf-8").strip("\n")
-            lines.append(line)
-
-        return lines
-        
+            raw = self.serial.readline()          # port timeout stays 0.1
+            if raw:
+                return raw.decode("utf-8", errors="replace").strip()
+        return None  
 

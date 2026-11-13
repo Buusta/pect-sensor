@@ -45,7 +45,7 @@ menubar.add_cascade(menu=menu_test, label='Test')
 menu_test.add_command(label='2+2', command= lambda: test())
 menu_test.add_command(label=';)')
 menu_test.add_command(label ='Exit', command= lambda: exit())
-menu_test.add_command(label ='Start Measure', command=lambda: sensor.test(69, do_thing))
+menu_test.add_command(label ='Start Measure', command=lambda: sensor.measure(do_thing))
 menu_test.add_command(label ='Ping Sensor', command=lambda: sensor.ping())
 
 # Connection
