@@ -4,7 +4,7 @@ import numpy as np
 
 # Import stuff from other python files
 import pec_sensor as pec
-import pect as p
+import pect as pect
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
@@ -12,7 +12,7 @@ from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-test_data = p.DataProcessor(file='calibration.csv')
+test_data = pect.DataProcessor(file='calibration.csv')
 #print(test_data)
 
 dispatch = lambda fn: root.after(0, fn)
@@ -40,7 +40,7 @@ menubar.add_cascade(menu=menu_ports, label='Ports')
 menubar.add_cascade(menu=menu_test, label='Test')
 
 menu_test.add_command(label='2+2', command= lambda: test())
-menu_test.add_command(label=';)')
+menu_test.add_command(label='serial', command= lambda: print(sensor.protocol.serial.is_open))
 menu_test.add_command(label ='Exit', command= lambda: exit())
 
 # Connection
@@ -51,21 +51,31 @@ connection_label = tk.Label(
 )
 connection_label.pack(side=tk.TOP)
 
+# Disconnect button
+def disconnect_button():
+    if not sensor.protocol.serial == None:
+        if sensor.protocol.serial.is_open == True:
+            menu_ports.entryconfigure(
+                "Disconnect",
+                state='normal'
+            )
+
 for p in sensor.protocol.available_ports:
     menu_ports.add_command(label=f'{p}', command= lambda p=p: [sensor.protocol.connect(p.vid),
-                                                               connection_label.config(
-                                                                   text=f"Connected via: {p}"
-                                                                   )])
-    
-if not sensor.protocol.serial == None:
-    if sensor.protocol.serial.is_open == True:
-        menu_ports.add_separator()
-        menu_ports.add_command(label='Disconnect', command= lambda: [sensor.protocol.disconnect(),
-                                                                    connection_label.config(
-                                                                        text=f"Disconnected"
-                                                                        )])
-else:
-    menu_ports.add_command(label='No port found', state="disabled")
+                                                               connection_label.config(text=f"Connected via: {p}"),
+                                                               disconnect_button()])
+if sensor.protocol.available_ports == []:
+    menu_ports.add_command(label='No port found', state="disabled", command=None)
+
+menu_ports.add_separator()
+menu_ports.add_command(label='Disconnect',
+                       command= lambda: [sensor.protocol.disconnect(),
+                                        connection_label.config(text=f"Disconnected"),
+                                        menu_ports.entryconfigure(
+                                                        "Disconnect",
+                                                        state='disabled'
+                                                        )],
+                        state='disabled')
 
 # Labels voor de gemiddelde waarde
 average_label = tk.Label(
