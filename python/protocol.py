@@ -44,7 +44,9 @@ class Protocol:
 
     def disconnect(self, print_status: bool = True):
         if not self.serial is None and self.serial.is_open:
-            self._thread.join()
+            if not self._thread is None:
+                self._thread.join()
+
             port = self.serial.port
             self.serial.close()
             self.serial = None
@@ -52,7 +54,7 @@ class Protocol:
             
 
 
-    def send_command(self, command: str, callback: callable) -> bool:
+    def send_command(self, command: str, value, callback: callable) -> bool:
         if self.serial is None or not self.serial.is_open:
             return False
 

@@ -33,16 +33,17 @@ root['menu'] = menubar
 def test():
     print(2+2)
 
-menu_file = tk.Menu(menubar, tearoff = 0)
+
 menu_ports = tk.Menu(menubar, tearoff = 0)
-menubar.add_cascade(menu=menu_file, label='File')
+menu_test = tk.Menu(menubar, tearoff = 0)
 menubar.add_cascade(menu=menu_ports, label='Ports')
+menubar.add_cascade(menu=menu_test, label='Test')
 
-menu_file.add_command(label='New')
-menu_file.add_command(label='Open...')
-menu_file.add_command(label='Close')
-menu_file.add_command(label ='Exit', command= root.destroy)
+menu_test.add_command(label='2+2', command= test())
+menu_test.add_command(label=';)')
+menu_test.add_command(label ='Exit', command= root.destroy)
 
+# Connection
 connection_label = tk.Label(
     root,
     text="Not Connected",
@@ -55,8 +56,12 @@ for p in sensor.protocol.available_ports:
                                                                connection_label.config(
                                                                    text=f"Connected via: {p}"
                                                                    )])
-
-#menu_ports.add_command(label='Disconnect', command=pec.protocol.disconnect())
+    
+menu_ports.add_separator()
+menu_ports.add_command(label='Disconnect', command= lambda: [sensor.protocol.disconnect(),
+                                                                connection_label.config(
+                                                                    text=f"Disconnected"
+                                                                    )])
 
 # Labels voor de gemiddelde waarde
 average_label = tk.Label(
