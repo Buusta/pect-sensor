@@ -54,7 +54,7 @@ class Protocol:
             
 
 
-    def send_command(self, command: str, value, callback: callable) -> bool:
+    def send_command(self, command: str, callback: callable) -> bool:
         if self.serial is None or not self.serial.is_open:
             return False
 
@@ -63,8 +63,6 @@ class Protocol:
 
         self.serial.reset_input_buffer()
         self.serial.write((command + "\n").encode())
-
-        print("test")
 
         self._thread = threading.Thread(target=self._run, args=(callback,))
         self._thread.start()
@@ -83,7 +81,7 @@ class Protocol:
 
     def read_serial(self, callback):
         lines = []
-        deadline = time.monotonic() + timeout
+        deadline = time.monotonic() + 1.0
         while time.monotonic() < deadline:
             raw = self.serial.readline()
             if not raw: continue

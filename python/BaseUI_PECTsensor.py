@@ -15,9 +15,9 @@ sensor = pec.PECSensor(dispatch=dispatch)
 
 def do_thing(value):
     print(value)
-    print("run")
 
-sensor.test(69, do_thing)
+
+
 
 
 #print(sensor.protocol.available_ports)
@@ -42,6 +42,7 @@ menubar.add_cascade(menu=menu_test, label='Test')
 menu_test.add_command(label='2+2', command= test())
 menu_test.add_command(label=';)')
 menu_test.add_command(label ='Exit', command= root.destroy)
+menu_test.add_command(label ='Run Test Command', command=lambda: sensor.test(69, do_thing))
 
 # Connection
 connection_label = tk.Label(
