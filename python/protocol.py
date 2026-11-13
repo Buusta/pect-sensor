@@ -88,20 +88,4 @@ class Protocol:
 
         return lines
         
-protocol = Protocol()
 
-ports = protocol.get_available_ports()
-protocol.connect(ports[0].vid)
-
-protocol.send_command("bbq burger im hungry")
-# protocol.send_command("test")
-
-time.sleep(2.0)
-
-protocol.disconnect()
-
-# print(ports)
-
-# for p in ports:
-#     print(p)
-#     print(p.vid, p.description, p.device)

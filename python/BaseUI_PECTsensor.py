@@ -10,7 +10,8 @@ from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-sensor = pec.PECSensor()
+dispatch = lambda fn: root.after(0, fn)
+sensor = pec.PECSensor(dispatch=dispatch)
 #print(sensor.protocol.available_ports)
 
 root = tk.Tk()

@@ -17,5 +17,3 @@ class PECSensor:
     def _parse(self, lines):
         return lines
 
-sensor = PECSensor()
-print(sensor.test)
