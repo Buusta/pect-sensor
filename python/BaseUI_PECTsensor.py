@@ -49,6 +49,7 @@ for p in sensor.protocol.available_ports:
                                                                    text=f"Connected via: {p}"
                                                                    )])
     
+menu_ports.add_separator()
 menu_ports.add_command(label='Disconnect', command= lambda: [sensor.protocol.disconnect(),
                                                                 connection_label.config(
                                                                     text=f"Disconnected"
