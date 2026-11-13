@@ -31,7 +31,7 @@ menu_test = tk.Menu(menubar, tearoff = 0)
 menubar.add_cascade(menu=menu_ports, label='Ports')
 menubar.add_cascade(menu=menu_test, label='Test')
 
-menu_test.add_command(label='2+2', command= test())
+menu_test.add_command(label='2+2', command= lambda: test())
 menu_test.add_command(label=';)')
 menu_test.add_command(label ='Exit', command= root.destroy)
 
@@ -125,7 +125,7 @@ def update_graph():
     canvas.draw()
 
     average = np.mean(data)
-    average_label.config(
+    data_label.config(
         text=f"{average:.3f}",
         foreground="#039903"
     )
