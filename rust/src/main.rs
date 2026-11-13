@@ -9,7 +9,7 @@ use bsp::entry;
 use bsp::hal::{clocks::init_clocks_and_plls, pac, usb::UsbBus, watchdog::Watchdog};
 use usb_device::{class_prelude::*, prelude::*};
 use usbd_serial::SerialPort;
-use heapless::Vec;
+// use heapless::Vec;
 
 #[entry]
 fn main() -> ! {
@@ -48,21 +48,17 @@ fn main() -> ! {
         .build();
 
     loop {
-        // must be called often, it's what actually runs USB
         if usb_dev.poll(&mut [&mut serial]) {
             let mut buf = [0u8; 64];
             if let Ok(count) = serial.read(&mut buf) {
                 if count > 0 {
-                    let mut msg: Vec<u8, 128> = Vec::new();
-                    let _ = msg.extend_from_slice(&buf[..count]);
-                    let _ = msg.extend_from_slice(b"\nI suck at programming\n");
-
-                    let mut out = &msg[..];
-                    while !out.is_empty() {
-                        match serial.write(out) {
-                            Ok(n) => out = &out[n..],
-                            Err(_) => break,
-                        }
+                    if let Ok(text) = core::str::from_utf8(&buf[..count]) {
+                        let reply: &str = match text.trim() {
+                            "MEASURE" => "MEASURE OK\n",
+                            "PING"    => "PONG\n",
+                            _         => "ERR unknown\n",
+                        };
+                        let _ = serial.write(reply.as_bytes());
                     }
                 }
             }
