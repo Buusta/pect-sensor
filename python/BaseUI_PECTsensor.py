@@ -93,105 +93,19 @@ data_label = tk.Label(
 )
 data_label.pack(side=tk.TOP, pady=5)
 
-# Matplotlib figure
-fig = Figure(figsize=(7, 4))
-ax = fig.add_subplot(111)
-
-canvas = FigureCanvasTkAgg(fig, master=root)
-
-data = []
-
-running = False
-after_id = None
-
-def update_graph():
-    global data, after_id
-
-    if not running:
-        return
-
-    keuze = dropdown.get()
-
-    # Nieuwe meetwaarde simuleren !!DIT VERVANGEN MET UITEINDELIJK REËLE DATA!!
-    Residuals = np.random.normal(10, 2, 20)
-    Fit = np.random.normal(10, 1, 20)
-    Tesla = np.random.normal(10, 5, 20)
-
-    data = Residuals
-    data_fit = Fit
-    raw_data = Tesla
-
-    if keuze == "Residuals en Fit":
-        ax.clear()
-        ax.plot(data, label="Residuals", color="red")
-        ax.plot(data_fit, label="Fit", color="blue")
-
-    elif keuze == "Residuals":
-        ax.clear()
-        ax.plot(data, label="Residuals", color="red")
-
-    elif keuze == "Fit":
-        ax.clear()
-        ax.plot(data_fit, label="Fit", color="blue")
-
-    elif keuze == "Raw Hallsensor Data":
-        ax.clear()
-        ax.plot(raw_data, label="Raw Hallsensor Data", color="green")
-
-        # Actual calibration data from pect.py | Doesnt work yet tho 
-        #p.plot_signal(data=test_data, label="Raw Hallsensor Data")
-
-    ax.legend(loc="upper right")
-    ax.set_ylim(0, 25)
-    ax.set_title("Live metingen")
-    ax.set_ylabel("Intensiteit (in mT)")
-    ax.set_xlabel("Tijd (in milliseconden)")
-
-    canvas.draw()
-
-    average = np.mean(data)
-    data_label.config(
-        text=f"{average:.3f}",
-        foreground="#039903"
-    )
-
-    after_id = root.after(100, update_graph)
-
-
-# Start knop
-def start():
-    global running
-
-    if not running:
-        running = True
-        update_graph()
-
-# Stop knop
-def stop():
-    global running, after_id
-
-    running = False
-
-    if after_id is not None:
-        root.after_cancel(after_id)
-        after_id = None
-
-
 # Knoppen
 button_frame = tk.Frame(root)
 button_frame.pack()
 
 start_button = tk.Button(
     button_frame,
-    text="Start",
-    command=start
+    text="Start"
 )
 start_button.pack(side=tk.LEFT, padx=5, pady=5)
 
 stop_button = tk.Button(
     button_frame,
-    text="Stop",
-    command=stop
+    text="Stop"
 )
 stop_button.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -207,6 +121,109 @@ dropdown = ttk.Combobox(
 
 dropdown.current(0)
 dropdown.pack(pady=10)
+
+# MATPLOTLIB FIGURE
+fig = Figure(figsize=(7, 4))
+ax = fig.add_subplot(111)
+
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().pack()
+
+# DATA & VARIABLES
+graph_data = {
+    "Residuals": [],
+    "Fit": [],
+    "Tesla": []
+}
+
+running = False
+after_id = None
+
+# GRAPH DISPLAY
+def update_graph_display():
+
+    keuze = dropdown.get()
+
+    ax.clear()
+
+    if keuze == "Residuals en Fit":
+        ax.plot(graph_data["Residuals"],
+                label="Residuals", color="red")
+
+        ax.plot(graph_data["Fit"],
+                label="Fit", color="blue")
+
+    elif keuze == "Residuals":
+        ax.plot(graph_data["Residuals"],
+                label="Residuals", color="red")
+
+    elif keuze == "Fit":
+        ax.plot(graph_data["Fit"],
+                label="Fit", color="blue")
+
+    elif keuze == "Raw Hallsensor Data":
+        ax.plot(graph_data["Tesla"],
+                label="Raw Hallsensor Data", color="green")
+
+    ax.legend(loc="upper right")
+    ax.set_ylim(0, 25)
+    ax.set_title("Live metingen")
+    ax.set_ylabel("Intensiteit (in mT)")
+    ax.set_xlabel("Tijd (in milliseconden)")
+
+    canvas.draw_idle()
+
+    # Gemiddelde weergeven
+    if len(graph_data["Residuals"]) > 0:
+        average = np.mean(graph_data["Residuals"])
+
+        data_label.config(
+            text=f"{average:.3f}",
+            foreground="#039903"
+        )
+
+
+# DATA UPDATE
+def update_graph():
+
+    global after_id
+
+    if not running:
+        return
+
+    # Nieuwe meetwaarden simuleren
+    # DIT LATER VERVANGEN MET REËLE SENSOR DATA
+
+    graph_data["Residuals"] = np.random.normal(10, 2, 20)
+    graph_data["Fit"] = np.random.normal(10, 1, 20)
+    graph_data["Tesla"] = np.random.normal(10, 5, 20)
+    
+    # Grafiek vernieuwen
+    update_graph_display()
+
+    # Opnieuw uitvoeren na 100 ms
+    after_id = root.after(100, update_graph)
+
+
+# START / STOP
+def start():
+
+    global running
+
+    if not running:
+        running = True
+        update_graph()
+
+def stop():
+
+    global running
+
+    if running:
+        running = False
+        update_graph()
+
+start_button.config(command=start)
+stop_button.config(command=stop)
 
 # pack_toolbar=False will make it easier to use a layout manager later on.
 toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
