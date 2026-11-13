@@ -1,14 +1,19 @@
 import tkinter as tk
 from tkinter import ttk
-
 import numpy as np
+
+# Import stuff from other python files
 import pec_sensor as pec
+import pect as p
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+
+test_data = p.DataProcessor(file='calibration.csv')
+#print(test_data)
 
 dispatch = lambda fn: root.after(0, fn)
 sensor = pec.PECSensor(dispatch=dispatch)
@@ -17,6 +22,10 @@ sensor = pec.PECSensor(dispatch=dispatch)
 root = tk.Tk()
 root.wm_title("PECT-control")
 
+def exit():
+    sensor.protocol.disconnect()
+    root.destroy()
+
 # Top menu
 menubar = tk.Menu(root)
 root['menu'] = menubar
@@ -24,10 +33,6 @@ root['menu'] = menubar
 # Test function
 def test():
     print(2+2)
-
-def exit():
-    sensor.protocol.disconnect()
-    root.destroy()
 
 menu_ports = tk.Menu(menubar, tearoff = 0)
 menu_test = tk.Menu(menubar, tearoff = 0)
@@ -51,6 +56,7 @@ for p in sensor.protocol.available_ports:
                                                                connection_label.config(
                                                                    text=f"Connected via: {p}"
                                                                    )])
+    
 if not sensor.protocol.serial == None:
     if sensor.protocol.serial.is_open == True:
         menu_ports.add_separator()
@@ -121,6 +127,9 @@ def update_graph():
     elif keuze == "Raw Hallsensor Data":
         ax.clear()
         ax.plot(raw_data, label="Raw Hallsensor Data", color="green")
+
+        # Actual calibration data from pect.py | Doesnt work yet tho 
+        #p.plot_signal(data=test_data, label="Raw Hallsensor Data")
 
     ax.legend(loc="upper right")
     ax.set_ylim(0, 25)
