@@ -10,7 +10,7 @@ class PECSensor:
         def handle(lines):
             data = self._parse(lines)
             self.dispatch(lambda: on_done(data))
-        return self.protocol.send_command(f"MEASURE", {value}, handle)
+        return self.protocol.send_command(f"MEASURE {value}", handle)
 
 
     # just a test function for now

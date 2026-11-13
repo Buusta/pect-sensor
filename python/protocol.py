@@ -62,7 +62,9 @@ class Protocol:
         self.serial.reset_input_buffer()
         self.serial.write((command + "\n").encode())
 
-        self._thread = threading.Thread(target=self.read_serial, args=(callback,))
+        print("test")
+
+        self._thread = threading.Thread(target=self._run, args=(callback,))
         self._thread.start()
     
         return True

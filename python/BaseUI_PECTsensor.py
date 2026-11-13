@@ -12,6 +12,14 @@ from matplotlib.figure import Figure
 
 dispatch = lambda fn: root.after(0, fn)
 sensor = pec.PECSensor(dispatch=dispatch)
+
+def do_thing(value):
+    print(value)
+    print("run")
+
+sensor.test(69, do_thing)
+
+
 #print(sensor.protocol.available_ports)
 
 root = tk.Tk()
