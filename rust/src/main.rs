@@ -20,7 +20,6 @@ const TIME_MS: usize = 30;
 const BIN_SIZE_US: usize = 5;
 const N: usize = TIME_MS * 1000 / BIN_SIZE_US;
 const CHUNK: usize = 500; // DMA buffer size, must divide N evenly
-const AVERAGES: usize = 10; // periods to accumulate
 const TICKS_PER_MS: u32 = 1250; // 125 MHz / divider 100 = 1.25 MHz tick
 const OFF_MS: u32 = 15; // coil-off time at the start of each period
 const PWM_TOP: u16 = (TIME_MS as u32 * TICKS_PER_MS - 1) as u16;
@@ -35,6 +34,27 @@ const _: () = assert!(BIN_SIZE_US >= 2); // the ADC can't go faster than 2 us
 
 // 100 KB accumulator in .bss (a static avoids building it on the stack)
 static mut ACCUM: [u32; N] = [0; N];
+
+// ---------------------------------------------------------------
+// Settings that come in with the MEASURE command.
+// Add more fields here later (and parse them below).
+// ---------------------------------------------------------------
+struct MeasurementSettings {
+    averages: u32,
+}
+
+// "MEASURE 100" or "MEASURE,100" -> MeasurementSettings { averages: 100 }
+// Extra values after the first are ignored for now.
+fn parse_measurement_settings(text: &str) -> Option<MeasurementSettings> {
+    let mut parts = text.trim().split([' ', ',']);
+    parts.next(); // skip "MEASURE"
+    let averages: u32 = parts.next()?.parse().ok()?;
+    // the u32 accumulator overflows above ~1 million averages
+    if averages < 1 || averages > 100_000 {
+        return None;
+    }
+    Some(MeasurementSettings { averages })
+}
 
 // Sends bytes and keeps calling poll() until they are all out.
 fn send<B: usb_device::bus::UsbBus>(
@@ -125,8 +145,8 @@ fn main() -> ! {
         .start_paused();
 
     // arm the DMA first, then start the ADC
-    let transfer = double_buffer::Config::new((dma.ch0, dma.ch1), adc_fifo.dma_read_target(), buf_a)
-        .start();
+    let transfer =
+        double_buffer::Config::new((dma.ch0, dma.ch1), adc_fifo.dma_read_target(), buf_a).start();
     let mut transfer = transfer.write_next(buf_b);
 
     adc_fifo.resume();
@@ -143,17 +163,20 @@ fn main() -> ! {
             transfer = next.write_next(buf);
         }
 
-        let mut run_measure = false;
+        // set by the MEASURE command, consumed below
+        let mut request: Option<MeasurementSettings> = None;
 
         if usb_dev.poll(&mut [&mut serial]) {
             let mut cmd_buf = [0u8; 64];
             if let Ok(count) = serial.read(&mut cmd_buf) {
                 if count > 0 {
                     if let Ok(text) = core::str::from_utf8(&cmd_buf[..count]) {
-                        // first word only, so "MEASURE 69" still matches
-                        let cmd = text.trim().split(' ').next().unwrap_or("");
+                        let cmd = text.trim().split([' ', ',']).next().unwrap_or("");
                         match cmd {
-                            "MEASURE" => run_measure = true,
+                            "MEASURE" => match parse_measurement_settings(text) {
+                                Some(s) => request = Some(s),
+                                None => send(&mut usb_dev, &mut serial, b"ERR bad settings\n"),
+                            },
                             "PING" => send(&mut usb_dev, &mut serial, b"PONG\n"),
                             _ => send(&mut usb_dev, &mut serial, b"ERR unknown\n"),
                         }
@@ -162,12 +185,13 @@ fn main() -> ! {
             }
         }
 
-        if !run_measure {
-            continue;
-        }
+        // no MEASURE command this round -> back to the top
+        let Some(s) = request else { continue };
 
-        // --- MEASURE ---
-        send(&mut usb_dev, &mut serial, b"MEASURE OK\n");
+        // --- MEASURE (s holds the settings for this run) ---
+        let mut ok: String<48> = String::new();
+        let _ = write!(ok, "MEASURE OK averages={}\n", s.averages);
+        send(&mut usb_dev, &mut serial, ok.as_bytes());
         accum.fill(0);
 
         // calibration (PWM off), then start the PWM at a chunk boundary
@@ -187,9 +211,9 @@ fn main() -> ! {
             transfer = next.write_next(buf);
         }
 
-        // accumulate AVERAGES periods
+        // accumulate s.averages periods
         let mut pos = 0usize;
-        for _ in 0..(AVERAGES * (N / CHUNK)) {
+        for _ in 0..(s.averages as usize * (N / CHUNK)) {
             while !transfer.is_done() {
                 usb_dev.poll(&mut [&mut serial]);
             }
@@ -213,7 +237,7 @@ fn main() -> ! {
             b % 1000,
             CAL_MS,
             BIN_SIZE_US,
-            AVERAGES
+            s.averages
         );
         send(&mut usb_dev, &mut serial, hdr.as_bytes());
         send(&mut usb_dev, &mut serial, b"time_ms,value\n");
@@ -221,7 +245,7 @@ fn main() -> ! {
         let mut line: String<32> = String::new();
         for i in 0..N {
             let t_us = (i * BIN_SIZE_US) as u32;
-            let avg_x100 = accum[i] as u64 * 100 / AVERAGES as u64;
+            let avg_x100 = accum[i] as u64 * 100 / s.averages as u64;
             line.clear();
             let _ = write!(
                 line,

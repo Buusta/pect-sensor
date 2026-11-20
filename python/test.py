@@ -1,12 +1,7 @@
-import serial
-import time
+import pec_sensor as pec
 
-ser = serial.Serial("/dev/ttyACM0", 115200, timeout=0.1)
-ser.write(b"MEASURE\n")
-end = time.monotonic() + 15
-while time.monotonic() < end:
-    raw = ser.readline()
-    if raw:
-        print(raw)
+settings = pec.MeasurementSettings()
 
-print("finished")
+settings.pulse_time_ms = 40
+
+print(settings)

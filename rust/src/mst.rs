@@ -10,19 +10,19 @@ use rp_pico as bsp;
 
 use bsp::entry;
 use bsp::hal::{clocks::init_clocks_and_plls, pac, sio::Sio, usb::UsbBus, watchdog::Watchdog};
+use embedded_hal::pwm::SetDutyCycle;
 use hal::dma::{double_buffer, DMAExt};
 use rp_pico::hal;
 use usb_device::{class_prelude::*, prelude::*};
 use usbd_serial::SerialPort;
-use embedded_hal::pwm::SetDutyCycle;
 
 const TIME_MS: usize = 30;
 const BIN_SIZE_US: usize = 5;
 const N: usize = TIME_MS * 1000 / BIN_SIZE_US;
 const CHUNK: usize = 500; // DMA buffer size, must divide N evenly
-const AVERAGES: usize = 1000; // periods to accumulate
+const AVERAGES: usize = 100; // periods to accumulate
 const TICKS_PER_MS: u32 = 1250; // 125 MHz / divider 100 = 1.25 MHz tick
-const OFF_MS: u32 = 15;         // coil-off time at the start of each period
+const OFF_MS: u32 = 15; // coil-off time at the start of each period
 const PWM_TOP: u16 = (TIME_MS as u32 * TICKS_PER_MS - 1) as u16;
 const _: () = assert!(TIME_MS as u32 * TICKS_PER_MS <= 65_536); // max ~52 ms
 
@@ -84,7 +84,9 @@ fn main() -> ! {
     let channel = &mut pwm.channel_b;
     // channel.output_to(pins.gpio7);
     // channel.set_inverted(); // low first, high until the wrap, so the turn-off edge is the wrap
-    channel.set_duty_cycle((OFF_MS * TICKS_PER_MS) as u16).unwrap();
+    channel
+        .set_duty_cycle((OFF_MS * TICKS_PER_MS) as u16)
+        .unwrap();
     let mut gate = channel.output_to(pins.gpio7);
     gate.set_slew_rate(hal::gpio::OutputSlewRate::Fast);
     gate.set_drive_strength(hal::gpio::OutputDriveStrength::TwelveMilliAmps);
@@ -130,14 +132,9 @@ fn main() -> ! {
         .start_paused();
 
     // arm the DMA first, then start the ADC
-    let transfer = double_buffer::Config::new(
-        (dma.ch0, dma.ch1),
-        adc_fifo.dma_read_target(),
-        buf_a,
-    )
-    .start();
+    let transfer =
+        double_buffer::Config::new((dma.ch0, dma.ch1), adc_fifo.dma_read_target(), buf_a).start();
     let mut transfer = transfer.write_next(buf_b);
-
 
     adc_fifo.resume();
 

@@ -10,80 +10,87 @@ from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+# from python.pect import DataProcessor
+
 dispatch = lambda fn: root.after(0, fn)
 sensor = pec.PECSensor(dispatch=dispatch)
 
-def do_thing(value):
-    print(value)
-
-
-
-
-
-#print(sensor.protocol.available_ports)
 
 root = tk.Tk()
 root.wm_title("PECT-control")
 
 # Top menu
 menubar = tk.Menu(root)
-root['menu'] = menubar
+root["menu"] = menubar
+
 
 # Test function
 def test():
-    print(2+2)
+    print(2 + 2)
+
 
 def exit():
     sensor.protocol.disconnect()
     root.destroy()
 
-menu_ports = tk.Menu(menubar, tearoff = 0)
-menu_test = tk.Menu(menubar, tearoff = 0)
-menubar.add_cascade(menu=menu_ports, label='Ports')
-menubar.add_cascade(menu=menu_test, label='Test')
 
-menu_test.add_command(label='2+2', command= lambda: test())
-menu_test.add_command(label=';)')
-menu_test.add_command(label ='Exit', command= lambda: exit())
-menu_test.add_command(label ='Start Measure', command=lambda: sensor.measure(do_thing))
-menu_test.add_command(label ='Ping Sensor', command=lambda: sensor.ping())
+menu_ports = tk.Menu(menubar, tearoff=0)
+menu_test = tk.Menu(menubar, tearoff=0)
+menubar.add_cascade(menu=menu_ports, label="Ports")
+menubar.add_cascade(menu=menu_test, label="Test")
+
+menu_test.add_command(label="2+2", command=lambda: test())
+menu_test.add_command(label=";)")
+menu_test.add_command(label="Exit", command=lambda: exit())
+
+measure_settings_10 = pec.MeasurementSettings(10, 15, 15)
+measure_settings_100 = pec.MeasurementSettings(100, 15, 15)
+measure_settings_1000 = pec.MeasurementSettings(1000, 15, 15)
+menu_test.add_command(
+    label="Start Measure 1000",
+    command=lambda: sensor.measure(measure_settings_1000, set_mst_cache),
+)
+menu_test.add_command(
+    label="Start Measure 100",
+    command=lambda: sensor.measure(measure_settings_100, set_mst_cache),
+)
+menu_test.add_command(
+    label="Start Measure 10",
+    command=lambda: sensor.measure(measure_settings_10, set_mst_cache),
+)
+menu_test.add_command(label="Ping Sensor", command=lambda: sensor.ping())
 
 # Connection
-connection_label = tk.Label(
-    root,
-    text="Not Connected",
-    font=("Arial", 10)
-)
+connection_label = tk.Label(root, text="Not Connected", font=("Arial", 10))
 connection_label.pack(side=tk.TOP)
 
 for p in sensor.protocol.available_ports:
-    menu_ports.add_command(label=f'{p}', command= lambda p=p: [sensor.protocol.connect(p.vid),
-                                                               connection_label.config(
-                                                                   text=f"Connected via: {p}"
-                                                                   )])
-if not sensor.protocol.serial == None:
+    menu_ports.add_command(
+        label=f"{p}",
+        command=lambda p=p: [
+            sensor.protocol.connect(p.vid),
+            connection_label.config(text=f"Connected via: {p}"),
+        ],
+    )
+if sensor.protocol.serial != None:
     if sensor.protocol.serial.is_open == True:
         menu_ports.add_separator()
-        menu_ports.add_command(label='Disconnect', command= lambda: [sensor.protocol.disconnect(),
-                                                                    connection_label.config(
-                                                                        text=f"Disconnected"
-                                                                        )])
+        menu_ports.add_command(
+            label="Disconnect",
+            command=lambda: [
+                sensor.protocol.disconnect(),
+                connection_label.config(text="Disconnected"),
+            ],
+        )
 else:
-    menu_ports.add_command(label='No port found', state="disabled")
+    menu_ports.add_command(label="No port found", state="disabled")
 
 # Labels voor de gemiddelde waarde
-average_label = tk.Label(
-    root,
-    text="Average/Gemiddelde: ",
-    font=("Arial", 14, "bold")
-)
+average_label = tk.Label(root, text="Average/Gemiddelde: ", font=("Arial", 14, "bold"))
 average_label.pack(side=tk.TOP, pady=10)
 
 data_label = tk.Label(
-    root,
-    text="Wachten op data...",
-    foreground="#B50000",
-    font=("Arial", 18, "bold")
+    root, text="Wachten op data...", foreground="#B50000", font=("Arial", 18, "bold")
 )
 data_label.pack(side=tk.TOP, pady=5)
 
@@ -98,8 +105,18 @@ data = []
 running = False
 after_id = None
 
+x_data = []
+y_data = []
+
+
+def set_mst_cache(rows):
+    global x_data, y_data
+    x_data = [r[0] for r in rows]
+    y_data = [(-r[1] + 2153) * 3.3 / 4096 * 1.5 for r in rows]
+
+
 def update_graph():
-    global data, after_id
+    global data, after_id, x_data, y_data
 
     if not running:
         return
@@ -115,25 +132,25 @@ def update_graph():
     data_fit = Fit
     raw_data = Tesla
 
-    if keuze == "Residuals en Fit":
-        ax.clear()
-        ax.plot(data, label="Residuals", color="red")
-        ax.plot(data_fit, label="Fit", color="blue")
+    ax.clear()
 
-    elif keuze == "Residuals":
-        ax.clear()
-        ax.plot(data, label="Residuals", color="red")
-
-    elif keuze == "Fit":
-        ax.clear()
-        ax.plot(data_fit, label="Fit", color="blue")
-
-    elif keuze == "Raw Hallsensor Data":
-        ax.clear()
-        ax.plot(raw_data, label="Raw Hallsensor Data", color="green")
+    ax.plot(x_data, y_data)
+    #     if keuze == "Residuals en Fit":
+    #         ax.plot(data, label="Residuals", color="red")
+    #         ax.plot(data_fit, label="Fit", color="blue")
+    #
+    #     elif keuze == "Residuals":
+    #         ax.plot(data, label="Residuals", color="red")
+    #
+    #     elif keuze == "Fit":
+    #         ax.plot(data_fit, label="Fit", color="blue")
+    #
+    #     elif keuze == "Raw Hallsensor Data":
+    #
+    #         ax.plot(y_data, label="Raw Hallsensor Data", color="green")
 
     ax.legend(loc="upper right")
-    ax.set_ylim(0, 25)
+    # ax.set_ylim(0, 25)
     ax.set_title("Live metingen")
     ax.set_ylabel("Intensiteit (in mT)")
     ax.set_xlabel("Tijd (in milliseconden)")
@@ -141,10 +158,7 @@ def update_graph():
     canvas.draw()
 
     average = np.mean(data)
-    data_label.config(
-        text=f"{average:.3f}",
-        foreground="#039903"
-    )
+    data_label.config(text=f"{average:.3f}", foreground="#039903")
 
     after_id = root.after(100, update_graph)
 
@@ -156,6 +170,7 @@ def start():
     if not running:
         running = True
         update_graph()
+
 
 # Stop knop
 def stop():
@@ -172,28 +187,17 @@ def stop():
 button_frame = tk.Frame(root)
 button_frame.pack()
 
-start_button = tk.Button(
-    button_frame,
-    text="Start",
-    command=start
-)
+start_button = tk.Button(button_frame, text="Start", command=start)
 start_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-stop_button = tk.Button(
-    button_frame,
-    text="Stop",
-    command=stop
-)
+stop_button = tk.Button(button_frame, text="Stop", command=stop)
 stop_button.pack(side=tk.LEFT, padx=5, pady=5)
 
 # Dropdown menu om meetdata aan te passen
 dropdown = ttk.Combobox(
     root,
-    values=["Residuals en Fit",
-            "Fit",
-            "Residuals",
-            "Raw Hallsensor Data"],
-    state="readonly"
+    values=["Residuals en Fit", "Fit", "Residuals", "Raw Hallsensor Data"],
+    state="readonly",
 )
 
 dropdown.current(0)
@@ -203,11 +207,10 @@ dropdown.pack(pady=10)
 toolbar = NavigationToolbar2Tk(canvas, root, pack_toolbar=False)
 toolbar.update()
 
-canvas.mpl_connect(
-    "key_press_event", lambda event: print(f"you pressed {event.key}"))
+canvas.mpl_connect("key_press_event", lambda event: print(f"you pressed {event.key}"))
 canvas.mpl_connect("key_press_event", key_press_handler)
 
-button_quit = tk.Button(master=root, text="Quit", command= lambda: exit())
+button_quit = tk.Button(master=root, text="Quit", command=lambda: exit())
 button_quit.pack(side=tk.BOTTOM, pady=10)
 
 toolbar.pack(side=tk.BOTTOM, fill=tk.X)

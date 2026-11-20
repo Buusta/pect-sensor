@@ -1,15 +1,17 @@
 import pect
 import matplotlib.pyplot as plt
 
-calibratie = pect.Data("presentatie/calibratie.csv")
-d5mm = pect.Data("presentatie/d5mm.csv")
-d5mm_a6mm = pect.Data("presentatie/d5mm_a6mm.csv")
+calibratie = pect.DataProcessor("presentatie/calibratie.csv")
+d5mm = pect.DataProcessor("presentatie/d5mm.csv")
+d5mm_a6mm = pect.DataProcessor("presentatie/d5mm_a6mm.csv")
 
 # pect.plot_data(calibratie)
 # pect.plot_data(d5mm)
+#
+# res_d5mm = pect.plot_residuals(calibratie.df, d5mm.df)
+# res_d5mm_a6mm = pect.plot_residuals(calibratie.df, d5mm_a6mm.df)
 
-res_d5mm = pect.residuals(calibratie.df, d5mm.df)
-res_d5mm_a6mm = pect.residuals(calibratie.df, d5mm_a6mm.df)
+calibratie.plot_residuals()
 
 pect.plot_residuals(res_d5mm)
 pect.plot_residuals(res_d5mm_a6mm)
