@@ -1,7 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import least_squares
+import numpy as np
 import pect
+from scipy.optimize import least_squares
 
 
 def eddy_model(time, B, tau_ms, gain):
@@ -18,13 +18,15 @@ def fit_eddy(time, B, residual, window, p0=(1.5, 0.04)):
     mask = (time >= window[0]) & (time <= window[1])
     res = least_squares(
         lambda p: (eddy_model(time, B, *p) - residual)[mask],
-        x0=p0, bounds=([1e-3, -np.inf], [100.0, np.inf]), x_scale=[1.0, 0.01],
+        x0=p0,
+        bounds=([1e-3, -np.inf], [100.0, np.inf]),
+        x_scale=[1.0, 0.01],
     )
     return res.x
 
 
-calibration = pect.Data("modelling/calibration.csv")
-d5mm = pect.Data("modelling/t5mm.csv")
+calibration = pect.DataProcessor("new_mst.csv")
+d5mm = pect.DataProcessor("modelling/t5mm.csv")
 
 time = calibration.df["time_ms"].to_numpy()
 B = calibration.df["normalized"].to_numpy()
@@ -33,14 +35,16 @@ c = calibration.ceil
 
 fit_window = (17.0, 21.0)
 tau, k = fit_eddy(time, B, residual, fit_window)
-eddy = eddy_model(time, B, tau, k)
+eddy = eddy_model(time, B, tau, k) * 0.1
 print(f"tau = {tau:.3f} ms, k = {k:.4f}")
 
 # Plot 1: calibration with modelled eddy field
 plt.figure(figsize=(8, 4))
 plt.plot(time, B * c, label="Kalibratie veld")
 plt.plot(time, eddy * c, color="tab:green", label="Gemodelleerd Eddy current veld")
-plt.plot(time, (B + eddy) * c, "--", color="tab:orange", label="Veld incl. Eddy currents")
+plt.plot(
+    time, (B + eddy) * c, "--", color="tab:orange", label="Veld incl. Eddy currents"
+)
 plt.title("Kalibratiemeting met gemodelleerde Eddy currents")
 plt.xlabel("Tijd $(ms)$")
 plt.ylabel("Magnetische veldsterkte $(mT)$")
@@ -54,7 +58,9 @@ plt.close()
 mask = (time >= 15.0) & (time <= 22.0)
 plt.figure(figsize=(8, 4))
 plt.plot(time[mask], residual[mask] / k, color="tab:orange", label="Gemeten residu")
-plt.plot(time[mask], eddy[mask] / k, color="tab:blue", label="Gemodelleerde Eddy currents")
+plt.plot(
+    time[mask], eddy[mask] / k, color="tab:blue", label="Gemodelleerde Eddy currents"
+)
 plt.title("Gemodelleerd en gemeten Eddy current residu (5 mm staal)")
 plt.xlabel("Tijd $(ms)$")
 plt.ylabel("Magnetische veldsterkte $(a.u.)$")

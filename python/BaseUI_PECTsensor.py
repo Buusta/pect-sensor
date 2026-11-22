@@ -112,7 +112,7 @@ y_data = []
 def set_mst_cache(rows):
     global x_data, y_data
     x_data = [r[0] for r in rows]
-    y_data = [(-r[1] + 2153) * 3.3 / 4096 * 1.5 for r in rows]
+    y_data = [(r[1] + 2153) * 3.3 / 4096 * 1.5 for r in rows]
 
 
 def update_graph():

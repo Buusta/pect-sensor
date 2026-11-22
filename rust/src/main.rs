@@ -99,14 +99,14 @@ fn main() -> ! {
 
     // --- PWM (coil gate) ---
     let mut pwm_slices = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS);
-    let pwm = &mut pwm_slices.pwm3;
+    let pwm = &mut pwm_slices.pwm0;
     pwm.set_div_int(100);
     pwm.set_top(PWM_TOP);
-    let channel = &mut pwm.channel_b;
+    let channel = &mut pwm.channel_a;
     channel
         .set_duty_cycle((OFF_MS * TICKS_PER_MS) as u16)
         .unwrap();
-    let mut gate = channel.output_to(pins.gpio7);
+    let mut gate = channel.output_to(pins.gpio16);
     gate.set_slew_rate(hal::gpio::OutputSlewRate::Fast);
     gate.set_drive_strength(hal::gpio::OutputDriveStrength::TwelveMilliAmps);
 
