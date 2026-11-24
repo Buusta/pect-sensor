@@ -31,7 +31,7 @@ time = processor.df["time_ms"].to_numpy()
 B = processor.df["normalized"].to_numpy()
 c = processor.ceil
 
-tau = 3.0
+tau = 0.5
 k = 1.0
 
 eddy = eddy_model(time, B, tau, k) * 0.1
@@ -47,6 +47,7 @@ yf = fft.rfft(eddy[time_mask])
 frequency_mask = (xf <= 6e3)
 
 plt.grid(True)
-# plt.plot(time[time_mask], eddy[time_mask])
-plt.plot(xf[frequency_mask], np.abs(yf[frequency_mask]))
+plt.plot(time, B)
+# plt.plot(xf[frequency_mask], np.abs(yf[frequency_mask]))
+plt.savefig("signal.png")
 plt.show()
