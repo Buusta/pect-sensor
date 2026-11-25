@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import numpy as np
-import pec_sensor as pec
+from core import pec_sensor as pec
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler

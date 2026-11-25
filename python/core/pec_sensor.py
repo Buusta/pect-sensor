@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-import protocol
+from core import protocol
 
 
 @dataclass

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pect
+from core import pect
 import scipy.fft as fft
 
 processor = pect.DataProcessor("new_mst.csv")
@@ -22,6 +22,7 @@ f = fft.rfftfreq(N, dt)
 plt.plot(f[1:], np.abs(yf[1:]))
 plt.xlabel("Frequentie $(Hz)$")
 plt.ylabel("Amplitude $(a.u.)$")
+plt.title("Fourier van ruisvloer")
 plt.grid(True)
 plt.savefig("signal_f.png")
 plt.show()
@@ -33,6 +34,7 @@ cum = np.cumsum(P) / P.sum()
 plt.plot(f[1:], cum[1:])
 plt.xlabel("Frequentie $(Hz)$")
 plt.ylabel("Energie $(a.u.)$")
+plt.title("Cumulatieve plot van fourier ruisvloer energie")
 plt.grid(True)
 plt.savefig("signal_f_p.png")
 plt.show()

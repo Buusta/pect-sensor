@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,8 +35,8 @@ class DataProcessor:
         legacy: bool = False,
     ):
 
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.file = os.path.join(base_dir, relative_path, file)
+        base_dir = Path(__file__).resolve().parents[2]   # pect-sensor/
+        self.file = base_dir / relative_path / file
         if legacy:
             self.df = pd.read_csv(self.file, comment="#")
         else:
