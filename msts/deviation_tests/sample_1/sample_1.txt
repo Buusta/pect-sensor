@@ -1,21 +1,23 @@
-sample 1:
+sample 1
 
 image: sample_1.jpg, sample_1_setup.jpg
 thickness: 5mm
 
 1.00A, 5.0V, 100 averages
 
-Measured tau
-1: 2.074
-2: 2.052
-3: 2.103
-4: 1.986
-5: 2.086
-6: 2.273
-7: 2.059
-8: 2.05
-9: 2.183
-10: 1.944
+measurement 1: 1.913
+measurement 2: 1.945
+measurement 3: 1.963
+measurement 4: 1.871
+measurement 5: 1.957
+measurement 6: 2.132
+measurement 7: 1.933
+measurement 8: 1.911
+measurement 9: 2.041
+measurement 10: 1.823
 
-mean: 2.0810294515401315
-standard deviation: 0.08840163369109061
+
+mean: 1.9489928170538053
+standard deviation: 0.08198259281224242
+
+fit time range: (15.35, 22.0)
