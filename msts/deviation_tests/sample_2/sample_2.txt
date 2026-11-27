@@ -1,0 +1,21 @@
+sample 2:
+
+image: sample_2.jpg, sample_2_setup.jpg
+thickness: 3mm
+
+1.00A, 5.0V, 100 averages
+
+Measured tau
+1: 1.07
+2: 1.194
+3: 1.194
+4: 1.143
+5: 1.101
+6: 1.118
+7: 1.234
+8: 1.049
+9: 1.267
+10: 1.221
+
+mean: 1.159109868267247
+standard deviation: 0.06978642512098399

@@ -4,10 +4,10 @@ import scipy.fft as fft
 
 from core import pect
 
-measurement = pect.read_mst("new_mst.csv")
+measurement = pect.read_mst("measurement_10.csv")
 processor = pect.DataProcessor(measurement)
 
-time_mask = (processor.df["time_ms"] >= 15.5) & (processor.df["time_ms"] <= 30.0)
+time_mask = (processor.df["time_ms"] >= 25.0) & (processor.df["time_ms"] <= 30.0)
 t = processor.df["time_ms"][time_mask].to_numpy()
 y = processor.df["normalized"][time_mask].to_numpy()
 

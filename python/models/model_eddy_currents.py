@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pect
 from scipy.optimize import least_squares
+
+from core import pect
 
 
 def eddy_model(time, B, tau_ms, gain):
@@ -25,8 +26,11 @@ def fit_eddy(time, B, residual, window, p0=(1.5, 0.04)):
     return res.x
 
 
-calibration = pect.DataProcessor("new_mst.csv")
-d5mm = pect.DataProcessor("modelling/t5mm.csv")
+calibration_df = pect.read_mst("calibration_11.csv")
+calibration = pect.DataProcessor(calibration_df)
+
+d5mm_df = pect.read_mst("measurement_11.csv")
+d5mm = pect.DataProcessor(d5mm_df)
 
 time = calibration.df["time_ms"].to_numpy()
 B = calibration.df["normalized"].to_numpy()

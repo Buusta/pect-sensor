@@ -5,7 +5,7 @@ from scipy import fft
 
 from core import pect
 
-measurement = pect.read_mst("measurement_8.csv")
+measurement = pect.read_mst("measurement_10.csv")
 data = pect.DataProcessor(measurement)
 
 time = data.df["time_ms"].to_numpy()

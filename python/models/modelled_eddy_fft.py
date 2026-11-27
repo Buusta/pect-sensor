@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pect
-from scipy.optimize import least_squares
 import scipy.fft as fft
+from scipy.optimize import least_squares
+
+from core import pect
 
 
 def eddy_model(time, B, tau_ms, gain):
@@ -26,15 +27,20 @@ def fit_eddy(time, B, residual, window, p0=(1.5, 0.04)):
     return res.x
 
 
-processor = pect.DataProcessor("new_mst.csv")
-time = processor.df["time_ms"].to_numpy()
-B = processor.df["normalized"].to_numpy()
-c = processor.ceil
+calibration_df = pect.read_mst("calibration_11.csv")
+calibration = pect.DataProcessor(calibration_df)
 
-tau = 0.5
-k = 1.0
+measurement_df = pect.read_mst("measurement_11.csv")
+measurement = pect.DataProcessor(measurement_df)
 
-eddy = eddy_model(time, B, tau, k) * 0.1
+time = calibration.df["time_ms"].to_numpy()
+B = calibration.df["normalized"].to_numpy()
+c = calibration.ceil
+
+tau = 0.4
+k = 0.2
+
+eddy = eddy_model(time, B, tau, k)
 
 time_mask = (time >= 15.0) & (time <= 30.0)
 
@@ -44,10 +50,11 @@ N = len(eddy[time_mask])
 xf = fft.rfftfreq(N, 1.0 / sample_rate)
 yf = fft.rfft(eddy[time_mask])
 
-frequency_mask = (xf <= 6e3)
+frequency_mask = xf <= 6e3
 
 plt.grid(True)
-plt.plot(time, B)
+plt.plot(time, eddy)
+plt.plot(time, measurement.df["normalized_data_residuals"])
 # plt.plot(xf[frequency_mask], np.abs(yf[frequency_mask]))
 plt.savefig("signal.png")
 plt.show()

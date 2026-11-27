@@ -13,11 +13,8 @@ from matplotlib.figure import Figure
 from core import pec_sensor as pec
 from core import pect
 
-# from python.pect import DataProcessor
-
 dispatch = lambda fn: root.after(0, fn)
 sensor = pec.PECSensor(dispatch=dispatch)
-
 
 root = tk.Tk()
 root.wm_title("PECT-control")
@@ -27,41 +24,44 @@ menubar = tk.Menu(root)
 root["menu"] = menubar
 
 
-# Test function
-def test():
-    print(2 + 2)
-
-
 def exit():
     sensor.protocol.disconnect()
     root.destroy()
 
 
 menu_ports = tk.Menu(menubar, tearoff=0)
-menu_test = tk.Menu(menubar, tearoff=0)
 menubar.add_cascade(menu=menu_ports, label="Ports")
-menubar.add_cascade(menu=menu_test, label="Test")
 
-menu_test.add_command(label="2+2", command=lambda: test())
-menu_test.add_command(label=";)")
-menu_test.add_command(label="Exit", command=lambda: exit())
+state_label = tk.Label(
+    root,
+    text="Wachten op connectie...",
+    foreground="#B50000",
+    font=("Arial", 18, "bold"),
+)
+state_label.pack(side=tk.TOP, pady=5)
 
-measure_settings_10 = pec.MeasurementSettings(10, 15, 15)
-measure_settings_100 = pec.MeasurementSettings(100, 15, 15)
-measure_settings_1000 = pec.MeasurementSettings(1000, 15, 15)
-menu_test.add_command(
-    label="Start Measure 1000",
-    command=lambda: sensor.measure(measure_settings_1000, set_mst_cache),
-)
-menu_test.add_command(
-    label="Start Measure 100",
-    command=lambda: sensor.measure(measure_settings_100, set_mst_cache),
-)
-menu_test.add_command(
-    label="Start Measure 10",
-    command=lambda: sensor.measure(measure_settings_10, set_mst_cache),
-)
-menu_test.add_command(label="Ping Sensor", command=lambda: sensor.ping())
+# menubar.add_cascade(menu=menu_test, label="Test")
+# menu_test = tk.Menu(menubar, tearoff=0)
+# menu_test.add_command(label="2+2", command=lambda: test())
+# menu_test.add_command(label=";)")
+# menu_test.add_command(label="Exit", command=lambda: exit())
+
+# measure_settings_10 = pec.MeasurementSettings(10, 15, 15)
+# measure_settings_100 = pec.MeasurementSettings(100, 15, 15)
+# measure_settings_1000 = pec.MeasurementSettings(1000, 15, 15)
+# menu_test.add_command(
+#     label="Start Measure 1000",
+#     command=lambda: sensor.measure(measure_settings_1000, set_mst_cache),
+# )
+# menu_test.add_command(
+#     label="Start Measure 100",
+#     command=lambda: sensor.measure(measure_settings_100, set_mst_cache),
+# )
+# menu_test.add_command(
+#     label="Start Measure 10",
+#     command=lambda: sensor.measure(measure_settings_10, set_mst_cache),
+# )
+# menu_test.add_command(label="Ping Sensor", command=lambda: sensor.ping())
 
 # Connection
 connection_label = tk.Label(root, text="Not Connected", font=("Arial", 10))
@@ -73,6 +73,7 @@ for p in sensor.protocol.available_ports:
         command=lambda p=p: [
             sensor.protocol.connect(p.vid),
             connection_label.config(text=f"Connected via: {p}"),
+            state_label.config(text="Wachten op meting..."),
         ],
     )
 if sensor.protocol.serial != None:
@@ -92,10 +93,6 @@ else:
 average_label = tk.Label(root, text="Average/Gemiddelde: ", font=("Arial", 14, "bold"))
 average_label.pack(side=tk.TOP, pady=10)
 
-data_label = tk.Label(
-    root, text="Wachten op data...", foreground="#B50000", font=("Arial", 18, "bold")
-)
-data_label.pack(side=tk.TOP, pady=5)
 
 # Matplotlib figure
 fig = Figure(figsize=(7, 4))
@@ -127,8 +124,6 @@ def set_cal_cache(df):
 def update_graph():
     global data, after_id, measurement_df, calibration_df
 
-    print(measurement_df)
-
     measurement_processor = pect.DataProcessor(measurement_df)
     calibration_processor = pect.DataProcessor(calibration_df)
     # if not running:
@@ -151,7 +146,7 @@ def update_graph():
 
     ax.plot(
         measurement_processor.df["time_ms"],
-        measurement_processor.df["mT"],
+        measurement_processor.df["normalized_data_residuals"],
     )
     #     if keuze == "Residuals en Fit":
     #         ax.plot(data, label="Residuals", color="red")
@@ -168,7 +163,6 @@ def update_graph():
     #         ax.plot(y_data, label="Raw Hallsensor Data", color="green")
 
     ax.legend(loc="upper right")
-    # ax.set_ylim(0, 25)
     ax.set_title("Live metingen")
     ax.set_ylabel("Intensiteit (in mT)")
     ax.set_xlabel("Tijd (in milliseconden)")
@@ -176,9 +170,10 @@ def update_graph():
     canvas.draw()
 
     measurement_processor.df.to_csv("measurement.csv")
+    calibration_processor.df.to_csv("calibration.csv")
 
     average = np.mean(data)
-    data_label.config(text=f"{average:.3f}", foreground="#039903")
+    # state_label.config(text=f"{average:.3f}", foreground="#039903")
 
     # after_id = root.after(100, update_graph)
 
@@ -187,13 +182,6 @@ def update_graph():
 def start():
     measure_settings = pec.MeasurementSettings(msts.get(), 15, 15)
     sensor.measure(measure_settings, set_mst_cache)
-
-
-#     global running
-#
-#     if not running:
-#         running = True
-#         update_graph()
 
 
 # Stop knop
@@ -230,7 +218,7 @@ calibrate_button.pack(side=tk.LEFT, padx=5, pady=5)
 # stop_button.pack(side=tk.LEFT, padx=5, pady=5)
 
 
-msts: tk.IntVar = tk.IntVar(value=10)
+msts: tk.IntVar = tk.IntVar(value=100)
 
 
 def set_msts(event=None):
