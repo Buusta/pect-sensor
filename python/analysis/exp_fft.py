@@ -51,10 +51,10 @@ def normalize(spectrum):
 
 
 # --- parameters -----------------------------------------------------------
-t_ms = np.linspace(0.0, 20.0, 4000)      # 20 ms window @ 200 kHz
+t_ms = np.linspace(0.0, 20.0, 4000)  # 20 ms window @ 200 kHz
 tau_ms_values = [0.5, 1.0, 2.0, 4.0]
 f_max_hz = 5e3
-f_analytic = np.linspace(0.0, f_max_hz, 2000)   # linear in Hz
+f_analytic = np.linspace(0.0, f_max_hz, 2000)  # linear in Hz
 
 
 # --- figure 1: time domain -------------------------------------------------
@@ -76,8 +76,11 @@ f_c = {tau: 1.0 / (2 * np.pi * tau * 1e-3) for tau in tau_ms_values}
 
 fig, ax = plt.subplots(figsize=(8, 4))
 for tau in tau_ms_values:
-    ax.plot(f_analytic, normalize(analytic_spectrum(f_analytic, tau)),
-            label=f"tau = {tau} ms")
+    ax.plot(
+        f_analytic,
+        normalize(analytic_spectrum(f_analytic, tau)),
+        label=f"tau = {tau} ms",
+    )
     ax.axvline(f_c[tau], color="gray", lw=0.5, ls=":")
 
 ax.set_xlabel("Frequentie $(Hz)$")

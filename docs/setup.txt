@@ -1,0 +1,3 @@
+To set up the required dependencies and imports navigate to pect-sensor/python and run:
+
+pip install -e .

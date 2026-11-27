@@ -10,6 +10,7 @@ use rp_pico as bsp;
 
 use bsp::entry;
 use bsp::hal::{clocks::init_clocks_and_plls, pac, sio::Sio, usb::UsbBus, watchdog::Watchdog};
+use embedded_hal::digital::OutputPin;
 use embedded_hal::pwm::SetDutyCycle;
 use hal::dma::{double_buffer, DMAExt};
 use rp_pico::hal;
@@ -19,7 +20,7 @@ use usbd_serial::SerialPort;
 const TIME_MS: usize = 30;
 const BIN_SIZE_US: usize = 5;
 const N: usize = TIME_MS * 1000 / BIN_SIZE_US;
-const CHUNK: usize = 500; // DMA buffer size, must divide N evenly
+const CHUNK: usize = 1000; // DMA buffer size, must divide N evenly
 const TICKS_PER_MS: u32 = 1250; // 125 MHz / divider 100 = 1.25 MHz tick
 const OFF_MS: u32 = 15; // coil-off time at the start of each period
 const PWM_TOP: u16 = (TIME_MS as u32 * TICKS_PER_MS - 1) as u16;
@@ -96,6 +97,10 @@ fn main() -> ! {
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
+
+    // setting the power save pin high to fix ripples
+    let mut ps = pins.b_power_save.into_push_pull_output();
+    ps.set_high().unwrap();
 
     // --- PWM (coil gate) ---
     let mut pwm_slices = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS);

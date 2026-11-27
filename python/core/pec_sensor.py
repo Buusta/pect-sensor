@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+from io import StringIO
+
+import pandas as pd
 
 from core import protocol
 
@@ -52,7 +55,7 @@ class PECSensor:
                 # anything else is stale leftover, ignore it
                 return False  # keep reading
             if line.startswith("MEASURE DONE"):  # stage 2: collecting data
-                data = self._parse(lines)
+                data = self._parse_mst(lines)
                 self.dispatch(lambda: on_done(data))
                 return True  # finished
             lines.append(line)
@@ -64,11 +67,7 @@ class PECSensor:
             f"MEASURE {settings.averages}", handler, failed, timeout=60.0
         )
 
-    def _parse(self, lines):
-        rows = []
-        for line in lines:
-            if line.startswith("#") or line.startswith("time_ms"):
-                continue  # header lines
-            t, v = line.split(",")
-            rows.append((float(t), float(v)))
-        return rows
+    def _parse_mst(self, lines):
+        data = (line for line in lines if not line.startswith("#"))
+
+        return pd.read_csv(StringIO("\n".join(data)))

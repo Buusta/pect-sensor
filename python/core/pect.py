@@ -28,33 +28,17 @@ saves them in DataProcessor.df:
 class DataProcessor:
     def __init__(
         self,
-        file: str,
+        df: pd.DataFrame,
         ceil_time_range: tuple = (13.0, 15.0),
         floor_time_range: tuple = (27.5, 30.0),
-        relative_path: str = "msts",
-        legacy: bool = False,
     ):
-
-        base_dir = Path(__file__).resolve().parents[2]   # pect-sensor/
-        self.file = base_dir / relative_path / file
-        if legacy:
-            self.df = pd.read_csv(self.file, comment="#")
-        else:
-            with open(self.file) as f:
-                header = f.readline()
-
-            meta = dict(kv.split("=") for kv in header.lstrip("# ").split())
-            baseline = float(meta["baseline_counts"])
-            # bin_us = int(meta["bin_us"])
-            # averages = int(meta["averages"])
-
-            self.df = pd.read_csv(self.file, comment="#")
-            self.df["voltage"] = (
-                (self.df["value"] - baseline) * 3.3 / 4096 * 1.5
-            )  # convert 12-bit number to 5v range
-            self.df["mT"] = (
-                self.df["voltage"] / 0.03125
-            )  # 0.625G * 5v = 3.125mV / G * 10 = 31.25mV/mT
+        self.df = df
+        self.df["voltage"] = (
+            self.df["value"] * 3.3 / 4096 * 1.5
+        )  # convert 12-bit number to 5v range
+        self.df["mT"] = (
+            self.df["voltage"] / 0.03125
+        )  # 0.625G * 5v = 3.125mV / G * 10 = 31.25mV/mT
 
         ceil_start, ceil_end = ceil_time_range
         ceil_filter_df = self.df[
@@ -77,7 +61,7 @@ class DataProcessor:
         self.df["normalized"] = self.df["mT"] / (self.ceil - self.floor)
         self.ceil_normalized = self.ceil / (self.ceil - self.floor)
 
-    def get_residuals(self, base: DataProcessor, normalized_residuals: bool = True):
+    def get_residuals(self, base: DataProcessor):
         self.df["residuals"] = self.df["mT"] - base.df["mT"]
         self.df["normalized_data_residuals"] = (
             self.df["normalized"] - base.df["normalized"]
@@ -108,8 +92,8 @@ def plot_signal(
 
     normalized_label = "normalized" if normalize else "mT"
 
-    if label == "":
-        label = data.file
+    # if label == "":
+    #     label = data.file
 
     plt.plot(
         filtered_data_df["time_ms"], filtered_data_df[normalized_label], label=label
@@ -187,14 +171,21 @@ def plot_residuals(
         (binned_res["time_ms"] >= min_time) & (binned_res["time_ms"] <= max_time)
     ]
 
-    if label == "":
-        label = data.file
+    # if label == "":
+    #     label = data.file
 
     plt.plot(
         binned_res_time_filtered["time_ms"],
         binned_res_time_filtered["residuals"],
         label=label,
     )
+
+
+def read_mst(file: str) -> pd.DataFrame:
+    base_dir = Path(__file__).resolve().parents[2]  # pect-sensor/
+    file_path = base_dir / "msts" / file
+
+    return pd.read_csv(file_path, comment="#")
 
 
 # TODO: implement into final fit

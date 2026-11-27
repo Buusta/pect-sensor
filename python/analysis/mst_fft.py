@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from core import pect
 import scipy.fft as fft
 
-processor = pect.DataProcessor("new_mst.csv")
+from core import pect
+
+measurement = pect.read_mst("new_mst.csv")
+processor = pect.DataProcessor(measurement)
 
 time_mask = (processor.df["time_ms"] >= 15.5) & (processor.df["time_ms"] <= 30.0)
 t = processor.df["time_ms"][time_mask].to_numpy()
@@ -27,7 +29,7 @@ plt.grid(True)
 plt.savefig("signal_f.png")
 plt.show()
 
-P = np.abs(yf)**2
+P = np.abs(yf) ** 2
 P[0] = 0
 cum = np.cumsum(P) / P.sum()
 

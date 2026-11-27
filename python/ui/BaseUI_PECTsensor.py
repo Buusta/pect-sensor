@@ -1,14 +1,17 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import filedialog, ttk
 
 import numpy as np
-from core import pec_sensor as pec
+import pandas as pd
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+
+from core import pec_sensor as pec
+from core import pect
 
 # from python.pect import DataProcessor
 
@@ -105,21 +108,33 @@ data = []
 running = False
 after_id = None
 
-x_data = []
-y_data = []
+measurement_df = pd.DataFrame()
+calibration_df = pd.DataFrame()
 
 
-def set_mst_cache(rows):
-    global x_data, y_data
-    x_data = [r[0] for r in rows]
-    y_data = [(r[1] + 2153) * 3.3 / 4096 * 1.5 for r in rows]
+def set_mst_cache(df):
+    global measurement_df
+    measurement_df = df
+    update_graph()
+
+
+def set_cal_cache(df):
+    global calibration_df
+    calibration_df = df
+    print("calibrated")
 
 
 def update_graph():
-    global data, after_id, x_data, y_data
+    global data, after_id, measurement_df, calibration_df
 
-    if not running:
-        return
+    print(measurement_df)
+
+    measurement_processor = pect.DataProcessor(measurement_df)
+    calibration_processor = pect.DataProcessor(calibration_df)
+    # if not running:
+    #     return
+
+    measurement_processor.get_residuals(calibration_processor)
 
     keuze = dropdown.get()
 
@@ -134,7 +149,10 @@ def update_graph():
 
     ax.clear()
 
-    ax.plot(x_data, y_data)
+    ax.plot(
+        measurement_processor.df["time_ms"],
+        measurement_processor.df["mT"],
+    )
     #     if keuze == "Residuals en Fit":
     #         ax.plot(data, label="Residuals", color="red")
     #         ax.plot(data_fit, label="Fit", color="blue")
@@ -157,19 +175,25 @@ def update_graph():
 
     canvas.draw()
 
+    measurement_processor.df.to_csv("measurement.csv")
+
     average = np.mean(data)
     data_label.config(text=f"{average:.3f}", foreground="#039903")
 
-    after_id = root.after(100, update_graph)
+    # after_id = root.after(100, update_graph)
 
 
 # Start knop
 def start():
-    global running
+    measure_settings = pec.MeasurementSettings(msts.get(), 15, 15)
+    sensor.measure(measure_settings, set_mst_cache)
 
-    if not running:
-        running = True
-        update_graph()
+
+#     global running
+#
+#     if not running:
+#         running = True
+#         update_graph()
 
 
 # Stop knop
@@ -183,6 +207,11 @@ def stop():
         after_id = None
 
 
+def calibrate():
+    measure_settings = pec.MeasurementSettings(msts.get(), 15, 15)
+    sensor.measure(measure_settings, set_cal_cache)
+
+
 # Knoppen
 button_frame = tk.Frame(root)
 button_frame.pack()
@@ -190,8 +219,29 @@ button_frame.pack()
 start_button = tk.Button(button_frame, text="Start", command=start)
 start_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-stop_button = tk.Button(button_frame, text="Stop", command=stop)
-stop_button.pack(side=tk.LEFT, padx=5, pady=5)
+calibrate_button = tk.Button(button_frame, text="Calibrate", command=calibrate)
+calibrate_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+
+# save_button = tk.Button(button_frame, text="Calibrate", command=calibrate)
+# save_button.pack(side=tk.LEFT, padx=5, pady=5)
+#
+# stop_button = tk.Button(button_frame, text="Stop", command=stop)
+# stop_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+
+msts: tk.IntVar = tk.IntVar(value=10)
+
+
+def set_msts(event=None):
+    msts.get()
+
+
+spinbox = tk.Spinbox(
+    button_frame, width=4, to=1000, command=set_msts, textvariable=msts
+)
+spinbox.pack(side=tk.LEFT, padx=5, pady=5)
+spinbox.bind("<Return>", set_msts)
 
 # Dropdown menu om meetdata aan te passen
 dropdown = ttk.Combobox(

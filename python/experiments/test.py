@@ -1,13 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pect
 from matplotlib.widgets import Slider
 from scipy import fft
 
-data = pect.DataProcessor("new_mst.csv")
+from core import pect
+
+measurement = pect.read_mst("measurement_8.csv")
+data = pect.DataProcessor(measurement)
 
 time = data.df["time_ms"].to_numpy()
-signal = data.df["mT"].to_numpy()
+signal = data.df["normalized"].to_numpy()
 
 fig, (ax_time, ax_fft) = plt.subplots(2, 1, figsize=(11, 8))
 plt.subplots_adjust(bottom=0.34, hspace=0.4)
